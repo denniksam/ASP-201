@@ -52,6 +52,30 @@ namespace ASP_201.Controllers
 
             return View(model);
         }
+        public IActionResult DisplayTemplates()
+        {
+            Models.Home.PassDataModel model = new()
+            {
+                Header = "Шаблони",
+                Title = "Шаблони відображення даних",
+                Products = new()
+                {
+                    new() { Name = "Зарядний кабель",       Price = 210   , Image = "puc1.png" },
+                    new() { Name = "Маніпулятор 'миша'",    Price = 399.50, Image = "puc2.png" },
+                    new() { Name = "Наліпка 'Smiley'",      Price = 2.95  , Image = "puc1.png" },
+                    new() { Name = "Серветки для монітору", Price = 100   , Image = "puc2.png" },
+                    new() { Name = "USB ліхтарик",          Price = 49.50 , Image = "puc1.png" },
+                    new() { Name = "Аккумулятор ААА",       Price = 280    },
+                    new() { Name = "ОС Windows Home",       Price = 1250   },
+                }
+            };
+
+            return View(model);
+        }
+        public IActionResult TagHelpers()
+        {
+            return View();
+        }
         public IActionResult Privacy()
         {
             return View();

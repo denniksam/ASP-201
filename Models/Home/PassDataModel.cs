@@ -11,5 +11,6 @@
     {
         public String Name { get; set; } = null!;
         public Double Price { get; set; }
+        public String Image { get; set; } = null!;
     }
 }
