@@ -1,61 +1,126 @@
-﻿@model ASP_201.Models.User.RegistrationModel
-@using ASP_201.Models.User
+﻿@using ASP_201.Models.User
+@model RegistrationModel
 @{
     ViewData["Title"] = "Реєстрація";
+    var registerValidation = 
+        ViewData["registerValidationModel"] as RegisterValidationModel;        
 }
 
 <div>
     <h1 class="display-4">Реєстрація нового користувача</h1>
 </div>
 
-<form method="post" asp-controller="User" asp-action="Register" >
+<form method="post" asp-controller="User" asp-action="Register" enctype="multipart/form-data">
+    <!--
+        Валідація форми засобами Bootstrap (https://getbootstrap.com/docs/5.0/forms/validation/#server-side)
+        Звертаємо увагу саме на серверну валідацію:
+        1) елементи форми (input) повинні мати стильові класи
+            is-invalid - червоний стиль, неправильне значення
+            is-valid - зелений стиль, правильне значення
+            жодного з цих класів - початковий стан, без валідації
+        2) після елементів форми додаються блоки
+             <div class="valid-feedback">Повідомлення</div> (опціонально)
+             <div class="invalid-feedback">Повідомлення</div>
+             жодного - початковий стан
+    -->
     <div class="form-group">
         <label asp-for="Login">Логін</label>
+        <!--
+            class="form-control" початковий стан 
+                (registerValidation is null)
+            class="form-control is-valid " позитивний результат валідації 
+                (registerValidation.LoginMessage is null)
+            class="form-control is-invalid " негативний результат валідації 
+                (registerValidation.LoginMessage is not null)
+        -->
         <input type="text" asp-for="Login" 
-               class="form-control" placeholder="Виберіть собі логін" />
+               class="form-control @( registerValidation is null 
+                                      ? "" 
+                                      : (registerValidation.LoginMessage is null 
+                                         ? "is-valid" 
+                                         : "is-invalid") )"
+               placeholder="Виберіть собі логін" />
+
+        @if (registerValidation?.LoginMessage is not null)
+        {
+            <div class="invalid-feedback">
+                @registerValidation.LoginMessage
+            </div>
+        }
     </div>
     <div class="form-group">
         <label asp-for="Password">Пароль</label>
         <input type="password" asp-for="Password"
-               class="form-control" placeholder="Введіть ваш пароль" />
+               class="form-control @(registerValidation is null ? "" : (registerValidation.PasswordMessage is null ? "is-valid" : "is-invalid") )"
+               placeholder="Введіть ваш пароль" />
+        @if (registerValidation?.PasswordMessage is not null)
+        {
+            <div class="invalid-feedback">
+                @registerValidation.PasswordMessage
+            </div>
+        }
     </div>
     <div class="form-group">
         <label asp-for="RepeatPassword">Підтвердження паролю</label>
         <input type="password" asp-for="RepeatPassword"
-               class="form-control" placeholder="Повторіть ваш пароль">
+               class="form-control @(registerValidation is null ? "" : (registerValidation.RepeatPasswordMessage is null ? "is-valid" : "is-invalid") )"
+               placeholder="Повторіть ваш пароль">
+        @if (registerValidation?.RepeatPasswordMessage is not null)
+        {
+            <div class="invalid-feedback">
+                @registerValidation.RepeatPasswordMessage
+            </div>
+        }
     </div>
     <div class="form-group">
         <label asp-for="Email">Email</label>
-        <input type="email" asp-for="Email"
-               class="form-control" placeholder="Введіть ваш E-mail" />
-        <small id="emailHelp" class="form-text text-muted">Без вашої згоди адреса не буде показуватись іншим користувачам.</small>
+        <input asp-for="Email" type="email"
+                      class="form-control @(registerValidation is null ? "" : (registerValidation.EmailMessage is null ? "is-valid" : "is-invalid") )"
+               placeholder="Введіть ваш E-mail" />
+        @if (registerValidation?.EmailMessage is not null)
+        {
+            <div class="invalid-feedback">
+                @registerValidation.EmailMessage
+            </div>
+        }
+        else
+        {
+            <small id="emailHelp" class="form-text text-muted">Без вашої згоди адреса не буде показуватись іншим користувачам.</small>
+        }
     </div>
     <div class="form-group">
         <label asp-for="RealName">Реальне ім'я</label>
         <input type="text" asp-for="RealName"
-               class="form-control" placeholder="Введіть ваше реальне ім'я" />
-        <small id="realNameHelp" class="form-text text-muted">Без вашої згоди ім'я не буде показуватись іншим користувачам.</small>
+               class="form-control @(registerValidation is null ? "" : (registerValidation.RealNameMessage is null ? "is-valid" : "is-invalid") )"
+               placeholder="Введіть ваше реальне ім'я" />
+        @if (registerValidation?.RealNameMessage is not null)
+        {
+            <div class="invalid-feedback">
+                @registerValidation.RealNameMessage
+            </div>
+        }
+        else
+        {
+            <small id="realNameHelp" class="form-text text-muted">Без вашої згоди ім'я не буде показуватись іншим користувачам.</small>
+        }
+    </div>
+    <div class="mb-3">
+        <label asp-for="Avatar" class="form-label">Виберіть файл для аватарки</label>
+        <input asp-for="Avatar" class="form-control" type="file" />
     </div>
     <div class="form-check">
         <input type="checkbox" asp-for="IsAgree"
-               class="form-check-input" />
+               class="form-check-input @(registerValidation is null ? "" : (registerValidation.IsAgreeMessage is null ? "is-valid" : "is-invalid") )" />
         <label class="form-check-label" asp-for="IsAgree">Погоджуюсь слідувати правилам сайту</label>
+        @if (registerValidation?.IsAgreeMessage is not null)
+        {
+            <div class="invalid-feedback">
+                @registerValidation.IsAgreeMessage
+            </div>
+        }
     </div>
     <button type="submit" class="btn btn-primary">Реєстрація</button>
 </form>
-
-@if (ViewData["registrationModel"] is RegistrationModel registrationModel)
-{
-    // була передача даних
-    <p>
-        Передані дані<br/>
-        @registrationModel.Login <br />
-        @registrationModel.Password <br />
-        @registrationModel.RepeatPassword <br />
-        @registrationModel.Email <br />
-        @registrationModel.RealName <br />
-    </p>
-}
 
 <hr/>
 <h2>Щодо HTML форм</h2>
@@ -91,4 +156,29 @@
     Головна перевага - є можливість створити постійне посилання із певними даними.<br />
     POST - вважається більш захищеним (насправді лише від зовнішнього погляду),
     Головна перевага - можливість передавання великих данних, у т.ч. файлів
+</p>
+<p>
+    Передача файлів за допомогою форм. <br />
+    HTML форма здатна передавати файли на сервер, але для цього необхідно забезпечити
+    деякі умови:<br />
+    - у формі мають бути input-и з типом "file"<br />
+    - метод форми - тільки "post"<br />
+    - enctype тільки multipart/form-data
+</p>
+<hr/>
+<h2>ASP особливості</h2>
+<p>
+    ASP методи контроллера можуть автоматично "зібрати" об'єкт моделі <u>за збігом
+    імен</u> у класі-моделі та параметрах запиту (query). Для того щоб зв'язування
+    відбулось успішно, необхідно забезпечити однаковість імен полів форми та імен
+    класу-моделі.
+</p>
+<p>
+    Одни з найпростіших способів забезпечити такий збіг - це використовувати 
+    тег-помічники з атрибутом asp-for
+</p>
+<p>
+    Прийом файлу від клієнта та його збереження на боці сервера називається 
+    "Upload(ing)". Для прийому файлу у моделі форми слід додати поле з типом
+    IFormFile. Подальше зв'язування ASP виконає автоматично (за збігом імен)
 </p>
