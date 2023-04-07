@@ -1,4 +1,5 @@
 ﻿using ASP_201.Models.User;
+using ASP_201.Services.Hash;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
 
@@ -6,6 +7,15 @@ namespace ASP_201.Controllers
 {
     public class UserController : Controller
     {
+        private readonly IHashService _hashService;
+        private readonly ILogger<UserController> _logger;
+
+        public UserController(IHashService hashService, ILogger<UserController> logger)
+        {
+            _hashService = hashService;
+            _logger = logger;
+        }
+
         public IActionResult Index()
         {
             return View();
@@ -96,9 +106,20 @@ namespace ASP_201.Controllers
             // будемо вважати аватар необов'язковим, обробляємо лише якщо він переданий
             if(registrationModel.Avatar is not null)  // є файл
             {
-                String path = "wwwroot/avatars/" + registrationModel.Avatar.FileName;
+                // Генеруємо для файла нове ім'я, але зберігаємо розширення
+                String ext = Path.GetExtension(registrationModel.Avatar.FileName);
+                // TODO: перевірити розширення на перелік дозволених
+                String savedName = _hashService.Hash(
+                    registrationModel.Avatar.FileName + DateTime.Now)[..16]
+                    + ext;
+                /* Д.З. Перед збереженням файлу пересвідчитись у тому, що
+                 * згенероване ім'я не зайняте. Перевірку зробити циклічною
+                 * на випадок повторних збігів перегенерованого імені.
+                 */
+                String path = "wwwroot/avatars/" + savedName;
                 using FileStream fs = new(path,FileMode.Create);
                 registrationModel.Avatar.CopyTo(fs);
+                ViewData["savedName"] = savedName;
             }
 
             #endregion

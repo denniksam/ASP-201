@@ -1,4 +1,6 @@
 ﻿using ASP_201.Models;
+using ASP_201.Services;
+using ASP_201.Services.Hash;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
@@ -7,10 +9,37 @@ namespace ASP_201.Controllers
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly DateService  _dateService;
+        private readonly TimeService  _timeService;
+        private readonly StampService _stampService;
+        private readonly IHashService _hashService;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger,
+                              DateService  dateService,
+                              TimeService  timeService,
+                              StampService stampService,
+                              IHashService hashService)
         {
-            _logger = logger;
+            _logger       = logger;
+            _dateService  = dateService;
+            _timeService  = timeService;
+            _stampService = stampService;
+            _hashService  = hashService;
+        }
+        public ViewResult Services()
+        {
+            ViewData["date_service"]  = _dateService.GetMoment();
+            ViewData["date_hashcode"] = _dateService.GetHashCode();
+
+            ViewData["time_service"]  = _timeService.GetMoment();
+            ViewData["time_hashcode"] = _timeService.GetHashCode();
+
+            ViewData["stamp_service"]  = _stampService.GetMoment();
+            ViewData["stamp_hashcode"] = _stampService.GetHashCode();
+
+            ViewData["hash_service"] = _hashService.Hash("123");
+
+            return View();
         }
 
         public IActionResult Index()
@@ -80,7 +109,7 @@ namespace ASP_201.Controllers
         {
             return View();
         }
-
+        
 
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
