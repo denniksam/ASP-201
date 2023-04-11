@@ -1,5 +1,8 @@
+using ASP_201.Data;
 using ASP_201.Services;
 using ASP_201.Services.Hash;
+using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +12,34 @@ builder.Services.AddSingleton<StampService>();
 
 // bind IHashService to Md5HashService
 builder.Services.AddSingleton<IHashService, Md5HashService>();
+
+/*
+// реєстрація контексту з підключенням до MS SQL Server
+builder.Services.AddDbContext<DataContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("MsDb")
+    )
+);
+*/
+
+// реєстрація контексту з підключенням до MySQL 
+// особливість - для контексту слід зазначити версію MySQL
+/*
+// варіант 1 - визначити версію та ввести дані
+ServerVersion serverVersion = new MySqlServerVersion(new Version(8, 0, 23));
+builder.Services.AddDbContext<DataContext>(options =>
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("MySqlDb"),
+        serverVersion));
+*/
+
+// варіант 2 - автоматичне визначення версії, але для цього треба 
+// попередньо створити підключення
+String? connectionString = builder.Configuration.GetConnectionString("MySqlDb");
+MySqlConnection connection = new(connectionString);
+builder.Services.AddDbContext<DataContext>(options =>
+    options.UseMySql(connection, ServerVersion.AutoDetect(connection)));
+
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();

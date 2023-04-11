@@ -1,4 +1,5 @@
-﻿using ASP_201.Models.User;
+﻿using ASP_201.Data;
+using ASP_201.Models.User;
 using ASP_201.Services.Hash;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
@@ -9,11 +10,13 @@ namespace ASP_201.Controllers
     {
         private readonly IHashService _hashService;
         private readonly ILogger<UserController> _logger;
+        private readonly DataContext _dataContext;
 
-        public UserController(IHashService hashService, ILogger<UserController> logger)
+        public UserController(IHashService hashService, ILogger<UserController> logger, DataContext dataContext)
         {
             _hashService = hashService;
             _logger = logger;
+            _dataContext = dataContext;
         }
 
         public IActionResult Index()

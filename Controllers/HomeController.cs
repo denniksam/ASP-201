@@ -1,4 +1,5 @@
-﻿using ASP_201.Models;
+﻿using ASP_201.Data;
+using ASP_201.Models;
 using ASP_201.Services;
 using ASP_201.Services.Hash;
 using Microsoft.AspNetCore.Mvc;
@@ -13,19 +14,28 @@ namespace ASP_201.Controllers
         private readonly TimeService  _timeService;
         private readonly StampService _stampService;
         private readonly IHashService _hashService;
+        private readonly DataContext  _dataContext;
 
         public HomeController(ILogger<HomeController> logger,
-                              DateService  dateService,
-                              TimeService  timeService,
+                              DateService dateService,
+                              TimeService timeService,
                               StampService stampService,
-                              IHashService hashService)
+                              IHashService hashService,
+                              DataContext dataContext)
         {
-            _logger       = logger;
-            _dateService  = dateService;
-            _timeService  = timeService;
+            _logger = logger;
+            _dateService = dateService;
+            _timeService = timeService;
             _stampService = stampService;
-            _hashService  = hashService;
+            _hashService = hashService;
+            _dataContext = dataContext;
         }
+        public ViewResult Context()
+        {
+            ViewData["UsersCount"] = _dataContext.Users.Count();
+            return View();
+        }
+
         public ViewResult Services()
         {
             ViewData["date_service"]  = _dateService.GetMoment();
@@ -41,7 +51,6 @@ namespace ASP_201.Controllers
 
             return View();
         }
-
         public IActionResult Index()
         {
             return View();
