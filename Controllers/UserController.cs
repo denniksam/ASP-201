@@ -1,6 +1,9 @@
 ﻿using ASP_201.Data;
+using ASP_201.Data.Entity;
 using ASP_201.Models.User;
 using ASP_201.Services.Hash;
+using ASP_201.Services.Kdf;
+using ASP_201.Services.Random;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
 
@@ -11,12 +14,16 @@ namespace ASP_201.Controllers
         private readonly IHashService _hashService;
         private readonly ILogger<UserController> _logger;
         private readonly DataContext _dataContext;
+        private readonly IRandomService _randomService;
+        private readonly IKdfService _kdfService;
 
-        public UserController(IHashService hashService, ILogger<UserController> logger, DataContext dataContext)
+        public UserController(IHashService hashService, ILogger<UserController> logger, DataContext dataContext, IRandomService randomService, IKdfService kdfService)
         {
             _hashService = hashService;
             _logger = logger;
             _dataContext = dataContext;
+            _randomService = randomService;
+            _kdfService = kdfService;
         }
 
         public IActionResult Index()
@@ -107,12 +114,13 @@ namespace ASP_201.Controllers
 
             #region Avatar
             // будемо вважати аватар необов'язковим, обробляємо лише якщо він переданий
-            if(registrationModel.Avatar is not null)  // є файл
+            String savedName = null!;
+            if (registrationModel.Avatar is not null)  // є файл
             {
                 // Генеруємо для файла нове ім'я, але зберігаємо розширення
                 String ext = Path.GetExtension(registrationModel.Avatar.FileName);
                 // TODO: перевірити розширення на перелік дозволених
-                String savedName = _hashService.Hash(
+                savedName = _hashService.Hash(
                     registrationModel.Avatar.FileName + DateTime.Now)[..16]
                     + ext;
                 /* Д.З. Перед збереженням файлу пересвідчитись у тому, що
@@ -129,6 +137,23 @@ namespace ASP_201.Controllers
             // якщо всі перевірки пройдені, то переходимо на нову сторінку з вітаннями
             if (isModelValid)
             {
+                String salt = _randomService.RandomString(16);
+                User user = new()
+                {
+                    Id = Guid.NewGuid(),
+                    Login = registrationModel.Login,
+                    RealName = registrationModel.RealName,
+                    Email = registrationModel.Email,
+                    EmailCode = _randomService.ConfirmCode(6),
+                    PasswordSalt = salt,
+                    PasswordHash = _kdfService.GetDerivedKey(registrationModel.Password, salt),
+                    Avatar = savedName,
+                    RegisterDt = DateTime.Now,
+                    LastEnterDt = null
+                };
+                _dataContext.Users.Add(user);
+                _dataContext.SaveChangesAsync();
+
                 return View(registrationModel);
             }
             else  // не всі дані валідні - повертаємо на форму реєстрації
@@ -141,3 +166,7 @@ namespace ASP_201.Controllers
         }
     }
 }
+/* Д.З. Перенести алгоритм формування імені файла-аватара у 
+ * RandomService. У іменах залишати тільки файл-безпечні символи.
+ * Змінити коди формування імені файлу
+ */
