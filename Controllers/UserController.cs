@@ -5,6 +5,7 @@ using ASP_201.Services.Hash;
 using ASP_201.Services.Kdf;
 using ASP_201.Services.Random;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 using System.Text.RegularExpressions;
 
 namespace ASP_201.Controllers
@@ -163,6 +164,44 @@ namespace ASP_201.Controllers
                 // спосіб перейти на View з іншою назвою, ніж метод
                 return View("Registration");
             }            
+        }
+
+        [HttpPost]   // метод доступний тільки для POST запитів
+        public String AuthUser()
+        {
+            // альтернативний (до моделей) спосіб отримання параметрів запиту
+            StringValues loginValues = Request.Form["user-login"];
+            // колекція loginValues формується при будь-якому ключі, але для
+            // неправильних (відсутніх) ключів вона порожня
+            if( loginValues.Count == 0 )
+            {
+                // немає логіну у складі полів
+                return "Missed required parameter: user-login";
+            }
+            String login = loginValues[0] ?? "";
+
+            StringValues passValues = Request.Form["user-password"];
+            if (passValues.Count == 0)
+            {
+                return "Missed required parameter: user-password";
+            }
+            String password = passValues[0] ?? "";
+
+            // шукаємо користувача за логіном
+            User? user = _dataContext.Users.Where(u => u.Login == login).FirstOrDefault();
+            if(user is not null)
+            {
+                // якщо знайшли - перевіряємо пароль (derived key)
+                if(user.PasswordHash == 
+                    _kdfService.GetDerivedKey(password, user.PasswordSalt))
+                {
+                    // дані перевірені - користувач автентифікований - зберігаємо у сесії
+                    HttpContext.Session.SetString("authUserId", user.Id.ToString());
+                    return "OK";
+                }
+            }
+
+            return "Авторизацію відхилено";
         }
     }
 }

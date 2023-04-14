@@ -1,4 +1,5 @@
 using ASP_201.Data;
+using ASP_201.Middleware;
 using ASP_201.Services;
 using ASP_201.Services.Hash;
 using ASP_201.Services.Kdf;
@@ -48,6 +49,15 @@ builder.Services.AddDbContext<DataContext>(options =>
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+// Налагодження сесій
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(1);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -64,6 +74,13 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthorization();
+
+// включення механізму сесій
+app.UseSession();
+
+// впровадження власного Middleware
+// app.UseMiddleware<SessionAuthMiddleware>();  -- без розширення
+app.UseSessionAuth();   // з розширенням
 
 app.MapControllerRoute(
     name: "default",

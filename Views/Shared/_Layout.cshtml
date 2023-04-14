@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@using ASP_201.Data.Entity
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -29,12 +31,35 @@
                 </div>
             </div>
 
-            <button title="Log in" type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-in-right" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0v-2z" />
-                    <path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z" />
-                </svg>
-            </button>
+            @if (Context.Items["authUser"] is User authUser)
+            {
+                <img src="~/avatars/@(authUser.Avatar)"
+                     alt="Ava"
+                     title="@(authUser.Login)"
+                     style="max-width: 40px; max-height:40px; border-radius: 50%"/>
+                <a asp-controller="User" asp-action="Logout"
+                   class="mx-3" title="Вийти">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-right" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z" />
+                        <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z" />
+                    </svg>
+                </a>
+                <!-- Д.З. У контроллері User реалізувати метод Logout, задачею якого
+                    є видалення з сесії відомостей про користувача.
+                    *за вимогами безпеки після зміни стану автентифікації небхідно
+                    здійснити перехід на безпечну сторінку (на головну)
+                -->
+            }
+            else
+            {
+                <button title="Log in" type="button" class="btn btn-outline-primary mx-3" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-in-right" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0v-2z" />
+                        <path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z" />
+                    </svg>
+                </button>
+            }
+            
 
         </nav>
     </header>
@@ -54,7 +79,7 @@
     <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form>
+                <form asp-controller="User" asp-action="AuthUser" method="post">
                     <div class="modal-header">
                         <h5 class="modal-title" id="exampleModalLabel">Автентифікація</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -76,14 +101,54 @@
                         </div>
                     </div>
                     <div class="modal-footer">
+                        <b id="auth-error"></b>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
-                        <button type="submit" class="btn btn-primary">Вхід</button>
+                        <button type="button" class="btn btn-primary" id="login-button">Вхід</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded",() => {
+            const loginButton = document.getElementById("login-button");
+            if (!loginButton) throw "login-button not found";
+            loginButton.addEventListener("click", loginButtonClick);
+        });
+        function loginButtonClick() {
+            const loginInput = document.getElementById("user-login");
+            if (!loginInput) throw "user-login input not found";
+            const login = loginInput.value;
 
+            const passwordInput = document.getElementById("user-password");
+            if (!passwordInput) throw "user-password input not found";
+            const password = passwordInput.value;
+
+            window.fetch("/User/AuthUser", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `user-login=${login}&user-password=${password}`
+            })
+            .then(r => r.text())
+            .then(t => {
+                // console.log(t);
+                if(t === "OK") {
+                    // оновлюємо сторінку для авторизації
+                    window.location.reload();
+                }
+                else {
+                    /*
+                    У разі виникнення помилки автентифікації вивести повідомлення,
+                    отримане від серверу, на діалог (Modal) з стилем під
+                    помилку
+                    */
+                        document.getElementById("auth-error").innerText = t;
+                }
+            });
+        }
+    </script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

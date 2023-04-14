@@ -30,12 +30,23 @@ namespace ASP_201.Controllers
             _hashService = hashService;
             _dataContext = dataContext;
         }
+        public ViewResult Sessions([FromQuery(Name = "session-attr")]String? sessionAttr)
+        {
+            if(sessionAttr is not null)
+            {
+                HttpContext.Session.SetString("session-attribute", sessionAttr);
+            }
+            return View();
+        }
+        public ViewResult Middleware()
+        {
+            return View();
+        }
         public ViewResult Context()
         {
             ViewData["UsersCount"] = _dataContext.Users.Count();
             return View();
         }
-
         public ViewResult Services()
         {
             ViewData["date_service"]  = _dateService.GetMoment();
