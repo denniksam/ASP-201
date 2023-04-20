@@ -6,6 +6,7 @@ using ASP_201.Services.Kdf;
 using ASP_201.Services.Random;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 
 namespace ASP_201.Controllers
@@ -45,6 +46,11 @@ namespace ASP_201.Controllers
             if (String.IsNullOrEmpty(registrationModel.Login))
             {
                 registerValidation.LoginMessage = "Логін не може бути порожним";
+                isModelValid = false;
+            }
+            if(_dataContext.Users.Any(u => u.Login == registrationModel.Login))
+            {
+                registerValidation.LoginMessage = "Логін вже використовується";
                 isModelValid = false;
             }
             #endregion
@@ -203,9 +209,83 @@ namespace ASP_201.Controllers
 
             return "Авторизацію відхилено";
         }
+
+        public RedirectToActionResult Logout()
+        {
+            HttpContext.Session.Remove("authUserId");
+            return RedirectToAction("Index", "Home");
+            /* Redirect та інші питання з перенаправлення
+             * Browser            Server
+             * GET /home --------> (routing)->Home::Index()->View()
+             *   page    <-------- 200 OK <!doctype html>...
+             *   
+             *           GET /Logout
+             * <a Logout> -------> User::Logout()->Redirect(...) 
+             *   follow  <-------- 302 (Redirect) Location: /home
+             * GET /home --------> (routing)->Home::Index()->View()
+             *   page    <-------- 200 OK <!doctype html>...           
+             *   
+             * 301 - Permanent Redirect - перенесено на постійній основі,
+             *  як правило, сайт змінив URL
+             * Довільний редірект слідується GET запитом, якщо потрібно
+             * зберігти початковий метод, то вживається 
+             * Redirect...PreserveMethod
+             * 
+             * 30x Redirect називають зовнішніми, тому що інформація 
+             * доходить до браузера і змінюється URL в адресному рядку
+             * http://..../addr1  ---> 302 Location /addr2
+             * http://..../addr2  ---> 200 html
+             * 
+             *                             addr1.asp
+             * http://..../addr1 (if..) \  addr2.asp
+             *                           \ addr3.asp
+             *                      forward - внутрінє перенаправлення   
+             *  (у браузері /addr1, але фактично відображено addr3.asp)
+             */
+        }
+
+        public IActionResult Profile( [FromRoute] String id )
+        {
+            // Задача: реалізувати можливість розрізнення власного та чужого профілів
+            User? user = _dataContext.Users.FirstOrDefault(u => u.Login == id);
+            if (user is not null)
+            {
+                Models.User.ProfileModel model = new(user);
+                // дістаємо відомості про автентифікацію
+                if (HttpContext.User.Identity is not null
+                 && HttpContext.User.Identity.IsAuthenticated)
+                {
+                    String userLogin =
+                        HttpContext.User.Claims
+                        .First(c => c.Type == ClaimTypes.NameIdentifier)
+                        .Value;
+
+                    if(userLogin == user.Login)   // Профіль - свій (персональний)
+                    {
+                        model.IsPersonal = true;
+                    }
+                }
+                return View(model);
+            }
+            else
+            {
+                return NotFound();
+            }
+            /* Особиста сторінка / Профиль
+             * 1. Чи буде ця сторінка доступна іншим користувачам?
+             *  Так, користувачі можуть переглядати профіль інших користувачів,
+             *  але тількі ті дані, що дозволив власник.
+             * 2. Як має формуватись адреса /User/Profile/????
+             *  а) Id
+             *  б) логін
+             *  Обираємо логін, в силу зручності поширення посилання на власний
+             *  профіль
+             *  !! необхідно забезпечити унікальність логіну
+             */
+        }
     }
 }
-/* Д.З. Перенести алгоритм формування імені файла-аватара у 
- * RandomService. У іменах залишати тільки файл-безпечні символи.
- * Змінити коди формування імені файлу
+/* Д.З. Реалізувати відображення реального імені та електронної пошти
+ * з урахуванням налагоджень Is[Field]Public
+ * 
  */
