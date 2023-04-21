@@ -244,6 +244,8 @@ namespace ASP_201.Controllers
              */
         }
 
+        // pattern: "{controller=Home}/{action=Index}/{id?}"
+        // /User/Profile/Admin : User-controller, Profile-action, Admin-id 
         public IActionResult Profile( [FromRoute] String id )
         {
             // Задача: реалізувати можливість розрізнення власного та чужого профілів
@@ -281,6 +283,52 @@ namespace ASP_201.Controllers
              *  Обираємо логін, в силу зручності поширення посилання на власний
              *  профіль
              *  !! необхідно забезпечити унікальність логіну
+             */
+        }
+
+        [HttpPut]   // метод доступний тільки для PUT запитів
+        public IActionResult Update( [FromBody] UpdateRequestModel model )
+        {
+            UpdateResponseModel responseModel = new();
+            try
+            {
+                if (model is null) throw new Exception("No or empty data");
+                if( HttpContext.User.Identity?.IsAuthenticated == false)
+                {
+                    throw new Exception("UnAuthenticated");
+                }
+                User? user = _dataContext.Users.Find(
+                    Guid.Parse(
+                        HttpContext.User.Claims
+                        .First(c => c.Type == ClaimTypes.Sid)
+                        .Value
+                ));
+                if( user is null ) throw new Exception("UnAuthorized");
+                switch (model.Field)
+                {
+                    case "realname":
+                        user.RealName = model.Value;
+                        _dataContext.SaveChanges();
+                        break;
+                    default:
+                        throw new Exception("Invalid 'Field' attribute");
+                }
+                responseModel.Status = "OK";
+                responseModel.Data = $"Field '{model.Field}' updated by value '{model.Value}'";
+            }
+            catch(Exception ex)
+            {
+                responseModel.Status = "Error";
+                responseModel.Data = ex.Message;
+            }
+            
+            return Json(responseModel);
+
+            /* Метод для оновлення даних про користувача
+             * Приймає асинхронні запити з JSON даними, повертає JSON
+             * із результатом роботи.
+             * Приймає дані = описуємо модель цих даних
+             * Повертає дані = описуємо модель
              */
         }
     }
