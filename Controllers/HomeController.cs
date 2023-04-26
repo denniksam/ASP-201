@@ -15,13 +15,9 @@ namespace ASP_201.Controllers
         private readonly StampService _stampService;
         private readonly IHashService _hashService;
         private readonly DataContext  _dataContext;
+        private readonly IConfiguration _configuration;
 
-        public HomeController(ILogger<HomeController> logger,
-                              DateService dateService,
-                              TimeService timeService,
-                              StampService stampService,
-                              IHashService hashService,
-                              DataContext dataContext)
+        public HomeController(ILogger<HomeController> logger, DateService dateService, TimeService timeService, StampService stampService, IHashService hashService, DataContext dataContext, IConfiguration configuration)
         {
             _logger = logger;
             _dateService = dateService;
@@ -29,13 +25,21 @@ namespace ASP_201.Controllers
             _stampService = stampService;
             _hashService = hashService;
             _dataContext = dataContext;
+            _configuration = configuration;
         }
-        public ViewResult Sessions([FromQuery(Name = "session-attr")]String? sessionAttr)
+       
+        public ViewResult Sessions([FromQuery(Name="session-attr")]String? sessionAttr)
         {
             if(sessionAttr is not null)
             {
                 HttpContext.Session.SetString("session-attribute", sessionAttr);
             }
+            return View();
+        }
+        public ViewResult EmailConfirmation()
+        {
+            // дістаємо параметр з конфігурації
+            ViewData["config"] = _configuration["Smtp:Gmail:Host"];
             return View();
         }
         public ViewResult Middleware()

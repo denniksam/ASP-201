@@ -278,7 +278,28 @@
                     "Content-Type": "application/json"
                 },
                 body: dataStr
-            }).then(r => r.json()).then(console.log);
+            })
+            .then(r => {
+                // r - response, об'єкт, який відповідає за первісний пакет НТТР
+                // на даному етапі можна дізнатись статус-код відповіді, заголовки
+                if(r.status != 200) {
+                    alert("Respone unsuccessfull");
+                    return;
+                }
+                // але для отримання тіла пакету слід запустити його видобувач
+                return r.json();  // або r.text() / r.arrayBuffer() / r.blob()
+            })
+            .then(j => {
+                // на даному етапі j - це тіло запиту
+                console.log(j);
+                if(j.status != 'OK') {  // тут j.status - поле з об'єкту, що у тілі відповіді
+                    alert(j.data);
+                    // відновити початкові дані (відмінити зміну)
+                }
+                else {
+                    // продублювати зміни у всіх полях із даним параметром
+                }
+            });
 
         }
         elem.removeAttribute("contenteditable");

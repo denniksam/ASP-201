@@ -1,9 +1,11 @@
 ﻿using ASP_201.Data;
 using ASP_201.Data.Entity;
 using ASP_201.Models.User;
+using ASP_201.Services.Email;
 using ASP_201.Services.Hash;
 using ASP_201.Services.Kdf;
 using ASP_201.Services.Random;
+using ASP_201.Services.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using System.Security.Claims;
@@ -18,14 +20,18 @@ namespace ASP_201.Controllers
         private readonly DataContext _dataContext;
         private readonly IRandomService _randomService;
         private readonly IKdfService _kdfService;
+        private readonly IValidationService _validationService;
+        private readonly IEmailService _emailService;
 
-        public UserController(IHashService hashService, ILogger<UserController> logger, DataContext dataContext, IRandomService randomService, IKdfService kdfService)
+        public UserController(IHashService hashService, ILogger<UserController> logger, DataContext dataContext, IRandomService randomService, IKdfService kdfService, IValidationService validationService, IEmailService emailService)
         {
             _hashService = hashService;
             _logger = logger;
             _dataContext = dataContext;
             _randomService = randomService;
             _kdfService = kdfService;
+            _validationService = validationService;
+            _emailService = emailService;
         }
 
         public IActionResult Index()
@@ -78,19 +84,16 @@ namespace ASP_201.Controllers
             #endregion
 
             #region Email Validation
-            if (String.IsNullOrEmpty(registrationModel.Email))
+            if (!_validationService.Validate(registrationModel.Email, ValidationTerms.NotEmpty))
             {
                 registerValidation.EmailMessage = "Email не може бути порожним";
                 isModelValid = false;
             }
-            else
+            else if (!_validationService.Validate(registrationModel.Email, ValidationTerms.Email))
             {
-                String emailRegex = @"^[\w.%+-]+@[\w.-]+\.[a-zA-Z]{2,}$";
-                if( ! Regex.IsMatch(registrationModel.Email, emailRegex))
-                {
-                    registerValidation.EmailMessage = "Email не відповідає шаблону";
-                    isModelValid = false;
-                }
+                registerValidation.EmailMessage = "Email не відповідає шаблону";
+                isModelValid = false;
+
             }
             #endregion
 
@@ -145,13 +148,14 @@ namespace ASP_201.Controllers
             if (isModelValid)
             {
                 String salt = _randomService.RandomString(16);
+                String confirmEmailCode = _randomService.ConfirmCode(6);
                 User user = new()
                 {
                     Id = Guid.NewGuid(),
                     Login = registrationModel.Login,
                     RealName = registrationModel.RealName,
                     Email = registrationModel.Email,
-                    EmailCode = _randomService.ConfirmCode(6),
+                    EmailCode = confirmEmailCode,
                     PasswordSalt = salt,
                     PasswordHash = _kdfService.GetDerivedKey(registrationModel.Password, salt),
                     Avatar = savedName,
@@ -159,8 +163,19 @@ namespace ASP_201.Controllers
                     LastEnterDt = null
                 };
                 _dataContext.Users.Add(user);
-                _dataContext.SaveChangesAsync();
+                _dataContext.SaveChanges();
 
+                // Якщо дані у БД додані, Надсилаємо код підтвердження на пошту
+                _emailService.Send(
+                    "confirm_email",
+                    new Models.Email.ConfirmEmailModel
+                    {
+                        Email = user.Email,
+                        RealName = user.RealName,
+                        EmailCode = user.EmailCode,
+                        ConfirmLink = "#"
+                    });
+                
                 return View(registrationModel);
             }
             else  // не всі дані валідні - повертаємо на форму реєстрації
@@ -290,6 +305,7 @@ namespace ASP_201.Controllers
         public IActionResult Update( [FromBody] UpdateRequestModel model )
         {
             UpdateResponseModel responseModel = new();
+
             try
             {
                 if (model is null) throw new Exception("No or empty data");
@@ -307,11 +323,16 @@ namespace ASP_201.Controllers
                 switch (model.Field)
                 {
                     case "realname":
-                        user.RealName = model.Value;
-                        _dataContext.SaveChanges();
+                        if (_validationService.Validate(model.Value, ValidationTerms.RealName))
+                        {
+                            user.RealName = model.Value;
+                            _dataContext.SaveChanges();
+                        }
+                        else throw new Exception(
+                                $"Validation error: field '{model.Field}' with value '{model.Value}'");
                         break;
                     default:
-                        throw new Exception("Invalid 'Field' attribute");
+                        throw new Exception($"Invalid 'Field' attribute: '{model.Field}'");
                 }
                 responseModel.Status = "OK";
                 responseModel.Data = $"Field '{model.Field}' updated by value '{model.Value}'";

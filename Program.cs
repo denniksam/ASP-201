@@ -1,9 +1,11 @@
 using ASP_201.Data;
 using ASP_201.Middleware;
 using ASP_201.Services;
+using ASP_201.Services.Email;
 using ASP_201.Services.Hash;
 using ASP_201.Services.Kdf;
 using ASP_201.Services.Random;
+using ASP_201.Services.Validation;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 
@@ -13,10 +15,11 @@ builder.Services.AddTransient<DateService>();
 builder.Services.AddScoped<TimeService>();
 builder.Services.AddSingleton<StampService>();
 
-// bind IHashService to Md5HashService
-builder.Services.AddSingleton<IHashService, Md5HashService>();
+builder.Services.AddSingleton<IHashService, Md5HashService>();  // bind IHashService to Md5HashService
 builder.Services.AddSingleton<IRandomService, RandomServiceV1>();
 builder.Services.AddSingleton<IKdfService, HashKdfService>();
+builder.Services.AddSingleton<IValidationService, ValidationServiceV1>();
+builder.Services.AddSingleton<IEmailService, GmailService>();
 
 /*
 // реєстрація контексту з підключенням до MS SQL Server
