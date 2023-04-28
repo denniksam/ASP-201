@@ -12,6 +12,8 @@ namespace ASP_201.Models.User
 
         public string Email { get; set; }
         public bool IsEmailPublic { get; set; }
+        public bool IsEmailConfirmed { get; set; }
+        
 
         public string Avatar { get; set; }
 
@@ -35,6 +37,7 @@ namespace ASP_201.Models.User
 
                 thisProp?.SetValue(this, prop.GetValue(user));
             }
+            this.IsEmailConfirmed = user.EmailCode is null;
         }
 
     }
