@@ -466,9 +466,7 @@ namespace ASP_201.Controllers
         public String ResendConfirmEmail()
         {
             if (HttpContext.User.Identity?.IsAuthenticated == false)
-            {
                 return "Unauthenticated";
-            }
             try
             {
                 User? user = _dataContext.Users.Find(
