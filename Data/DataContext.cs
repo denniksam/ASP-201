@@ -21,6 +21,12 @@ namespace ASP_201.Data
                 .HasKey(
                     nameof(Entity.Rate.ItemId),    // Встановлення композитного
                     nameof(Entity.Rate.UserId));   // ключа
+
+            // One-to-many Author(User)-Section
+            modelBuilder.Entity<Entity.Section>()
+                .HasOne(s => s.Author)  // NavyProp
+                .WithMany()             // Empty - ref by type (User Author)
+                .HasForeignKey(s => s.AuthorId);
         }
     }
 }

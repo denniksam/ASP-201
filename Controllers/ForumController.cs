@@ -3,6 +3,8 @@ using ASP_201.Models.Forum;
 using ASP_201.Services.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.Metrics;
 using System.Security.Claims;
 
 namespace ASP_201.Controllers
@@ -19,16 +21,36 @@ namespace ASP_201.Controllers
             _logger = logger;
             _validationService = validationService;
         }
-
+        private int _counter = 0;
+        private int Counter { get => _counter++; set => _counter = value; }
         public IActionResult Index()
         {
+            Counter = 0;
             ForumIndexModel model = new()
             {
                 UserCanCreate = HttpContext.User.Identity?.IsAuthenticated == true,
                 Sections = _dataContext
                     .Sections
+                    .Include(s => s.Author)   // включити навігаційну властивість Author
                     .Where(s => s.DeletedDt == null)
-                    .OrderByDescending(s => s.CreatedDt)
+                    .OrderBy(s => s.CreatedDt)
+                    .AsEnumerable()  // IQueriable -> IEnumerable
+                    .Select(s => new ForumSectionViewModel()
+                    {
+                        Title = s.Title,
+                        Description = s.Description,
+                        LogoUrl = $"/img/logos/section{Counter}.png",
+                        CreatedDtString = DateTime.Today == s.CreatedDt.Date
+                            ? "Сьогодні " + s.CreatedDt.ToString("HH:mm")
+                            : s.CreatedDt.ToString("dd.MM.yyyy HH:mm"),
+                        // AuthorName - RealName або Login в залежності від налагоджень 
+                        AuthorName = s.Author.IsRealNamePublic 
+                            ? s.Author.RealName 
+                            : s.Author.Login,
+                        AuthorAvatarUrl = s.Author.Avatar == null
+                            ? "/avatars/no-avatar.png"
+                            : $"/avatars/{s.Author.Avatar}"
+                    })
                     .ToList()
             };
 
@@ -99,7 +121,7 @@ namespace ASP_201.Controllers
                 catch
                 {
                     HttpContext.Session.SetString("CreateSectionMessage",
-                    "Відмовлено в авторизації");
+                        "Відмовлено в авторизації");
                     HttpContext.Session.SetInt32("IsMessagePositive", 0);
                     HttpContext.Session.SetString("SavedTitle", formModel.Title ?? String.Empty);
                     HttpContext.Session.SetString("SavedDescription", formModel.Description ?? String.Empty);
