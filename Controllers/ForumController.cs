@@ -21,6 +21,7 @@ namespace ASP_201.Controllers
             _logger = logger;
             _validationService = validationService;
         }
+        
         private int _counter = 0;
         private int Counter { get => _counter++; set => _counter = value; }
         public IActionResult Index()
@@ -43,6 +44,7 @@ namespace ASP_201.Controllers
                         CreatedDtString = DateTime.Today == s.CreatedDt.Date
                             ? "Сьогодні " + s.CreatedDt.ToString("HH:mm")
                             : s.CreatedDt.ToString("dd.MM.yyyy HH:mm"),
+                        UrlIdString = s.Id.ToString(),
                         // AuthorName - RealName або Login в залежності від налагоджень 
                         AuthorName = s.Author.IsRealNamePublic 
                             ? s.Author.RealName 
@@ -59,6 +61,49 @@ namespace ASP_201.Controllers
                 model.CreateMessage = message;
                 model.IsMessagePositive = HttpContext.Session.GetInt32("IsMessagePositive") == 1;
                 if(model.IsMessagePositive == false)
+                {
+                    model.FormModel = new()
+                    {
+                        Title = HttpContext.Session.GetString("SavedTitle")!,
+                        Description = HttpContext.Session.GetString("SavedDescription")!
+                    };
+                    HttpContext.Session.Remove("SavedTitle");
+                    HttpContext.Session.Remove("SavedDescription");
+                }
+                HttpContext.Session.Remove("CreateSectionMessage");
+                HttpContext.Session.Remove("IsMessagePositive");
+            }
+
+            return View(model);
+        }
+
+        public ViewResult Sections([FromRoute] String id)
+        {
+            ForumSectionsModel model = new()
+            {
+                UserCanCreate = HttpContext.User.Identity?.IsAuthenticated == true,
+                SectionId = id,
+                Themes = _dataContext
+                    .Themes
+                    .Where(t => t.DeletedDt == null && t.SectionId == Guid.Parse(id))
+                    .Select(t => new ForumThemeViewModel()
+                    {
+                        Title = t.Title,
+                        Description = t.Description,
+                        CreatedDtString = DateTime.Today == t.CreatedDt.Date
+                            ? "Сьогодні " + t.CreatedDt.ToString("HH:mm")
+                            : t.CreatedDt.ToString("dd.MM.yyyy HH:mm"),
+                        UrlIdString = t.Id.ToString(),
+                        SectionId = t.SectionId.ToString(),
+                    })
+                    .ToList()
+            };
+
+            if (HttpContext.Session.GetString("CreateSectionMessage") is String message)
+            {
+                model.CreateMessage = message;
+                model.IsMessagePositive = HttpContext.Session.GetInt32("IsMessagePositive") == 1;
+                if (model.IsMessagePositive == false)
                 {
                     model.FormModel = new()
                     {
@@ -128,6 +173,61 @@ namespace ASP_201.Controllers
                 }                
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        public RedirectToActionResult CreateTheme(ForumThemeFormModel formModel)
+        {
+            if (!_validationService.Validate(formModel.Title, ValidationTerms.NotEmpty))
+            {
+                HttpContext.Session.SetString("CreateSectionMessage",
+                    "Назва не може бути порожною");
+                HttpContext.Session.SetInt32("IsMessagePositive", 0);
+                HttpContext.Session.SetString("SavedTitle", formModel.Title ?? String.Empty);
+                HttpContext.Session.SetString("SavedDescription", formModel.Description ?? String.Empty);
+            }
+            else if (!_validationService.Validate(formModel.Description, ValidationTerms.NotEmpty))
+            {
+                HttpContext.Session.SetString("CreateSectionMessage",
+                    "Опис не може бути порожним");
+                HttpContext.Session.SetInt32("IsMessagePositive", 0);
+                HttpContext.Session.SetString("SavedTitle", formModel.Title ?? String.Empty);
+                HttpContext.Session.SetString("SavedDescription", formModel.Description ?? String.Empty);
+            }
+            else
+            {
+                Guid userId;
+                try
+                {
+                    userId = Guid.Parse(
+                        HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Sid)?.Value
+                    );
+                    _dataContext.Themes.Add(new()
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = formModel.Title,
+                        Description = formModel.Description,
+                        CreatedDt = DateTime.Now,
+                        AuthorId = userId,
+                        SectionId = Guid.Parse(formModel.SectionId)
+                    });
+                    _dataContext.SaveChanges();
+                    
+                    HttpContext.Session.SetString("CreateSectionMessage",
+                        "Додано успішно");
+                    HttpContext.Session.SetInt32("IsMessagePositive", 1);
+                }
+                catch
+                {
+                    HttpContext.Session.SetString("CreateSectionMessage",
+                        "Відмовлено в авторизації");
+                    HttpContext.Session.SetInt32("IsMessagePositive", 0);
+                    HttpContext.Session.SetString("SavedTitle", formModel.Title ?? String.Empty);
+                    HttpContext.Session.SetString("SavedDescription", formModel.Description ?? String.Empty);
+                }
+            }
+
+            return RedirectToAction(nameof(Sections), new { id = formModel.SectionId });
         }
     }
 }

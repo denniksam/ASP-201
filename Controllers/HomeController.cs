@@ -46,6 +46,10 @@ namespace ASP_201.Controllers
         {
             return View();
         }
+        public ViewResult Page404()
+        {
+            return View();
+        }
         public ViewResult Context()
         {
             ViewData["UsersCount"] = _dataContext.Users.Count();

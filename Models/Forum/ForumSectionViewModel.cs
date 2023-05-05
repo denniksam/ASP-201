@@ -6,6 +6,7 @@
         public String Description { get; set; } = null!;
         public String LogoUrl { get; set; } = null!;
         public String CreatedDtString { get; set; } = null!;
+        public String UrlIdString { get; set; } = null!;
 
 
         // Author data
