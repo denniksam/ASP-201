@@ -7,5 +7,9 @@
         public String UrlIdString { get; set; } = null!;
         public String SectionId { get; set; } = null!;
         public String CreatedDtString { get; set; } = null!;
+
+        // Author data
+        public String AuthorName { get; set; } = null!;
+        public String AuthorAvatarUrl { get; set; } = null!;
     }
 }

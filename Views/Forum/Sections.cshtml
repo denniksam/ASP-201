@@ -9,7 +9,7 @@
 
 @foreach(var Theme in Model.Themes)
 {
-    <p>@Theme.Title, @Theme.Description</p>
+    @Html.DisplayFor(m => Theme, "ForumTheme")
 }
 
 @if (Model.UserCanCreate)

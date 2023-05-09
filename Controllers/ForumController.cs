@@ -1,5 +1,6 @@
 ﻿using ASP_201.Data;
 using ASP_201.Models.Forum;
+using ASP_201.Services.Transliterate;
 using ASP_201.Services.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,14 +15,16 @@ namespace ASP_201.Controllers
         private readonly DataContext _dataContext;
         private readonly ILogger<ForumController> _logger;
         private readonly IValidationService _validationService;
+        private readonly ITransliterationService _transliterationService;
 
-        public ForumController(DataContext dataContext, ILogger<ForumController> logger, IValidationService validationService)
+        public ForumController(DataContext dataContext, ILogger<ForumController> logger, IValidationService validationService, ITransliterationService transliterationService)
         {
             _dataContext = dataContext;
             _logger = logger;
             _validationService = validationService;
+            _transliterationService = transliterationService;
         }
-        
+
         private int _counter = 0;
         private int Counter { get => _counter++; set => _counter = value; }
         public IActionResult Index()
@@ -44,7 +47,7 @@ namespace ASP_201.Controllers
                         CreatedDtString = DateTime.Today == s.CreatedDt.Date
                             ? "Сьогодні " + s.CreatedDt.ToString("HH:mm")
                             : s.CreatedDt.ToString("dd.MM.yyyy HH:mm"),
-                        UrlIdString = s.Id.ToString(),
+                        UrlIdString = s.UrlId ?? s.Id.ToString(),
                         // AuthorName - RealName або Login в залежності від налагоджень 
                         AuthorName = s.Author.IsRealNamePublic 
                             ? s.Author.RealName 
@@ -79,13 +82,23 @@ namespace ASP_201.Controllers
 
         public ViewResult Sections([FromRoute] String id)
         {
+            Guid sectionId;
+            try
+            {
+                sectionId = Guid.Parse(id);
+            }
+            catch
+            {
+                sectionId = _dataContext.Sections.First(s => s.UrlId == id).Id;
+            }
             ForumSectionsModel model = new()
             {
                 UserCanCreate = HttpContext.User.Identity?.IsAuthenticated == true,
-                SectionId = id,
+                SectionId = sectionId.ToString(),
                 Themes = _dataContext
                     .Themes
-                    .Where(t => t.DeletedDt == null && t.SectionId == Guid.Parse(id))
+                    .Include(t => t.Author)
+                    .Where(t => t.DeletedDt == null && t.SectionId == sectionId)
                     .Select(t => new ForumThemeViewModel()
                     {
                         Title = t.Title,
@@ -95,6 +108,10 @@ namespace ASP_201.Controllers
                             : t.CreatedDt.ToString("dd.MM.yyyy HH:mm"),
                         UrlIdString = t.Id.ToString(),
                         SectionId = t.SectionId.ToString(),
+                        AuthorName = t.Author.IsRealNamePublic
+                                        ? t.Author.RealName
+                                        : t.Author.Login,
+                        AuthorAvatarUrl = $"/avatars/{t.Author.Avatar ?? "no-avatar.png"}"
                     })
                     .ToList()
             };
@@ -150,13 +167,21 @@ namespace ASP_201.Controllers
                     userId = Guid.Parse(
                         HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Sid)?.Value
                     );
+                    String trans = _transliterationService.Transliterate(formModel.Title);
+                    String urlId = trans;
+                    int n = 2;
+                    while(_dataContext.Sections.Any(s => s.UrlId == urlId))
+                    {
+                        urlId = $"{trans}{n++}";
+                    }
                     _dataContext.Sections.Add(new()
                     {
                         Id = Guid.NewGuid(),
                         Title = formModel.Title,
                         Description = formModel.Description,
                         CreatedDt = DateTime.Now,
-                        AuthorId = userId
+                        AuthorId = userId,
+                        UrlId = urlId
                     });
                     _dataContext.SaveChanges();
                     HttpContext.Session.SetString("CreateSectionMessage",
@@ -209,7 +234,7 @@ namespace ASP_201.Controllers
                         Description = formModel.Description,
                         CreatedDt = DateTime.Now,
                         AuthorId = userId,
-                        SectionId = Guid.Parse(formModel.SectionId)
+                        SectionId = Guid.Parse(formModel.SectionId)                        
                     });
                     _dataContext.SaveChanges();
                     
@@ -227,7 +252,9 @@ namespace ASP_201.Controllers
                 }
             }
 
-            return RedirectToAction(nameof(Sections), new { id = formModel.SectionId });
+            return RedirectToAction(
+                nameof(Sections), 
+                new { id = formModel.SectionId });  // TODO: id = UrlId ?? SectionId
         }
     }
 }
