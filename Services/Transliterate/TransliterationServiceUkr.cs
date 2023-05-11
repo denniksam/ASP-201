@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ASP_201.Services.Transliterate
 {
@@ -120,6 +121,57 @@ namespace ASP_201.Services.Transliterate
                 }
             }
             return output.ToString();
+        }
+
+        public string TransliterateToUrl(string source, int maxLength)
+        {
+            source = Regex.Replace(source.Trim(), @"\s+", " ");
+            StringBuilder sb = new();
+            bool isFirstLetter = true;
+            foreach (char ch in source)
+            {
+                String str = ch switch
+                {
+                    'а' or 'А' => "a",
+                    'б' or 'Б' => "b",
+                    'в' or 'В' => "v",
+                    'г' or 'Г' => "h",
+                    'ґ' or 'Ґ' => "g",
+                    'д' or 'Д' => "d",
+                    'е' or 'Е' => "e",
+                    'є' or 'Є' => isFirstLetter ? "ye" : "ie",
+                    'ж' or 'Ж' => "zh",
+                    'з' or 'З' => "z",
+                    'и' or 'И' => "y",
+                    'і' or 'І' => "i",
+                    'ї' or 'Ї' => isFirstLetter ? "yi" : "i",
+                    'к' or 'К' => "k",
+                    'л' or 'Л' => "l",
+                    'м' or 'М' => "m",
+                    'н' or 'Н' => "n",
+                    'о' or 'О' => "o",
+                    'п' or 'П' => "p",
+                    'р' or 'Р' => "r",
+                    'с' or 'С' => "s",
+                    'т' or 'Т' => "t",
+                    'у' or 'У' => "u",
+                    'ф' or 'Ф' => "f",
+                    'х' or 'Х' => "kh",
+                    'ц' or 'Ц' => "ts",
+                    'ч' or 'Ч' => "ch",
+                    'ш' or 'Ш' => "sh",
+                    'щ' or 'Щ' => "shch",
+                    'ь' or 'Ь' => "",
+                    'ю' or 'Ю' => isFirstLetter ? "yu" : "iu",
+                    'я' or 'Я' => isFirstLetter ? "ya" : "ia",
+                    ' ' or '-' or '_' => "-",
+                    >= '0' and <= '9' => ch.ToString(),
+                    _ => String.Empty
+                };
+                isFirstLetter = str == String.Empty || str == "-";
+                sb.Append(str);
+            }
+            return sb.ToString()[..maxLength];
         }
     }
 }
