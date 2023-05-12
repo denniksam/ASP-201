@@ -27,7 +27,13 @@ namespace ASP_201.Controllers
             _dataContext = dataContext;
             _configuration = configuration;
         }
-       
+
+        public ViewResult WebApi()
+        {
+            return View();
+        }
+
+
         public ViewResult Sessions([FromQuery(Name="session-attr")]String? sessionAttr)
         {
             if(sessionAttr is not null)
