@@ -11,6 +11,7 @@
         public String?   UrlId       { get; set; }
 
         // Navigation
-        public User Author { get; set; } = null!;
+        public User       Author   { get; set; } = null!;
+        public List<Rate> RateList { get; set; } = null!;
     }
 }

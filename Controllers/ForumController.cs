@@ -36,6 +36,7 @@ namespace ASP_201.Controllers
                 Sections = _dataContext
                     .Sections
                     .Include(s => s.Author)   // включити навігаційну властивість Author
+                    .Include(s => s.RateList)
                     .Where(s => s.DeletedDt == null)
                     .OrderBy(s => s.CreatedDt)
                     .AsEnumerable()  // IQueriable -> IEnumerable
@@ -54,7 +55,10 @@ namespace ASP_201.Controllers
                             : s.Author.Login,
                         AuthorAvatarUrl = s.Author.Avatar == null
                             ? "/avatars/no-avatar.png"
-                            : $"/avatars/{s.Author.Avatar}"
+                            : $"/avatars/{s.Author.Avatar}",
+                        // Rating data
+                        LikesCount    = s.RateList.Count(r => r.Rating > 0),
+                        DislikesCount = s.RateList.Count(r => r.Rating < 0),
                     })
                     .ToList()
             };
