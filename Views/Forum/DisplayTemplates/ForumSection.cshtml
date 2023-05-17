@@ -24,15 +24,33 @@
                 
                 <span class="g-color-gray-dark-v4" 
                       style="margin-left: 3em"
-                      data-rating="@Model.UrlIdString" data-rating-value="1"
+                      data-rating="@Model.UrlIdString" 
+                      data-rating-value="1"
+                      data-rating-given="@(Model.GivenRating == 1 ? "true" : "false")"
                       role="button">
-                    <i class="bi-hand-thumbs-up"></i>
+                    @if(Model.GivenRating == 1)
+                    {
+                        <i class="bi-hand-thumbs-up-fill"></i>
+                    }
+                    else
+                    {
+                        <i class="bi-hand-thumbs-up"></i>
+                    }                    
                     @Model.LikesCount
                 </span>
                 <span class="g-color-gray-dark-v4 mx-3"
-                      data-rating="@Model.UrlIdString" data-rating-value="-1"
-                      role="button">                    
-                    <i class="bi-hand-thumbs-down"></i>
+                      data-rating="@Model.UrlIdString" 
+                      data-rating-value="-1"
+                      data-rating-given="@(Model.GivenRating == -1 ? "true" : "false")"
+                      role="button"> 
+                    @if(Model.GivenRating == -1)
+                    {
+                        <i class="bi-hand-thumbs-down-fill"></i>
+                    }
+                    else
+                    {
+                        <i class="bi-hand-thumbs-down"></i>
+                    }                    
                     @Model.DislikesCount
                 </span>
 

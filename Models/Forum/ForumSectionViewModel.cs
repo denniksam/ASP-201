@@ -14,8 +14,9 @@
         public String AuthorAvatarUrl { get; set; } = null!;
 
         // Rating data
-        public int LikesCount    { get; set; }
-        public int DislikesCount { get; set; }
+        public int  LikesCount    { get; set; }
+        public int  DislikesCount { get; set; }
+        public int? GivenRating   { get; set; }
 
     }
 }

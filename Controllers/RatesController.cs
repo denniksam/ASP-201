@@ -1,4 +1,5 @@
 ﻿using ASP_201.Data;
+using ASP_201.Data.Entity;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -43,10 +44,22 @@ namespace ASP_201.Controllers
                     Guid userId = Guid.Parse(bodyData.UserId);
                     int  rating = Convert.ToInt32(bodyData.Data);
 
-                    if(_dataContext.Rates.Any(r => r.UserId == userId && r.ItemId == itemId))
+                    Rate? rate = _dataContext.Rates.FirstOrDefault(r => r.UserId == userId && r.ItemId == itemId);
+                    if (rate is not null)
                     {
-                        statusCode = StatusCodes.Status406NotAcceptable;
-                        result = $"Дані вже наявні: ItemId={bodyData?.ItemId} UserId={bodyData?.UserId}";
+                        if(rate.Rating == rating)
+                        {
+                            statusCode = StatusCodes.Status406NotAcceptable;
+                            result = $"Дані вже наявні: ItemId={bodyData?.ItemId} UserId={bodyData?.UserId}";
+                        }
+                        else
+                        {
+                            // дані наявні, але з іншою оцінкою -- міняємо оцінку
+                            rate.Rating = rating;
+                            _dataContext.SaveChanges();
+                            statusCode = StatusCodes.Status202Accepted;
+                            result = $"Дані оновлено: Data={bodyData?.Data} ItemId={bodyData?.ItemId} UserId={bodyData?.UserId}";
+                        }
                     }
                     else
                     {
@@ -68,6 +81,53 @@ namespace ASP_201.Controllers
                 }
             }
             
+            HttpContext.Response.StatusCode = statusCode;
+            return new { result };
+        }
+
+        [HttpDelete]
+        public object Delete([FromBody] BodyData bodyData)
+        {
+            int statusCode;
+            String result;
+
+            if (bodyData == null
+                || bodyData.Data == null
+                || bodyData.ItemId == null
+                || bodyData.UserId == null)
+            {
+                statusCode = StatusCodes.Status400BadRequest;
+                result = $"Не всі дані передані: Data={bodyData?.Data} ItemId={bodyData?.ItemId} UserId={bodyData?.UserId}";
+            }
+            else
+            {
+                try
+                {
+                    Guid itemId = Guid.Parse(bodyData.ItemId);
+                    Guid userId = Guid.Parse(bodyData.UserId);
+                    int rating = Convert.ToInt32(bodyData.Data);
+
+                    Rate? rate = _dataContext.Rates.FirstOrDefault(r => r.UserId == userId && r.ItemId == itemId);
+                    if (rate is not null)
+                    {
+                        _dataContext.Rates.Remove(rate);
+                        _dataContext.SaveChanges();
+                        statusCode = StatusCodes.Status202Accepted;
+                        result = $"Дані видалено: Data={bodyData?.Data} ItemId={bodyData?.ItemId} UserId={bodyData?.UserId}";
+                    }
+                    else
+                    {
+                        statusCode = StatusCodes.Status406NotAcceptable;
+                        result = $"Дані відсутні (не можуть бути видалені): ItemId={bodyData?.ItemId} UserId={bodyData?.UserId}";
+                    }
+                }
+                catch
+                {
+                    statusCode = StatusCodes.Status400BadRequest;
+                    result = $"Дані не опрацьовані: Data={bodyData?.Data} ItemId={bodyData?.ItemId} UserId={bodyData?.UserId}";
+                }
+            }
+
             HttpContext.Response.StatusCode = statusCode;
             return new { result };
         }

@@ -1,4 +1,5 @@
 ﻿using ASP_201.Data;
+using ASP_201.Data.Entity;
 using ASP_201.Models.Forum;
 using ASP_201.Services.Transliterate;
 using ASP_201.Services.Validation;
@@ -30,6 +31,7 @@ namespace ASP_201.Controllers
         public IActionResult Index()
         {
             Counter = 0;
+            String? userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Sid)?.Value;
             ForumIndexModel model = new()
             {
                 UserCanCreate = HttpContext.User.Identity?.IsAuthenticated == true,
@@ -59,6 +61,8 @@ namespace ASP_201.Controllers
                         // Rating data
                         LikesCount    = s.RateList.Count(r => r.Rating > 0),
                         DislikesCount = s.RateList.Count(r => r.Rating < 0),
+                        GivenRating = userId == null ? null
+                            : s.RateList.FirstOrDefault(r => r.UserId == Guid.Parse(userId))?.Rating
                     })
                     .ToList()
             };
@@ -94,6 +98,7 @@ namespace ASP_201.Controllers
             {
                 sectionId = _dataContext.Sections.First(s => s.UrlId == id).Id;
             }
+            String? userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Sid)?.Value;
             ForumSectionsModel model = new()
             {
                 UserCanCreate = HttpContext.User.Identity?.IsAuthenticated == true,
@@ -101,7 +106,9 @@ namespace ASP_201.Controllers
                 Themes = _dataContext
                     .Themes
                     .Include(t => t.Author)
+                    .Include(t => t.RateList)
                     .Where(t => t.DeletedDt == null && t.SectionId == sectionId)
+                    .AsEnumerable()
                     .Select(t => new ForumThemeViewModel()
                     {
                         Title = t.Title,
@@ -114,7 +121,12 @@ namespace ASP_201.Controllers
                         AuthorName = t.Author.IsRealNamePublic
                                         ? t.Author.RealName
                                         : t.Author.Login,
-                        AuthorAvatarUrl = $"/avatars/{t.Author.Avatar ?? "no-avatar.png"}"
+                        AuthorAvatarUrl = $"/avatars/{t.Author.Avatar ?? "no-avatar.png"}",
+                        // Rating data
+                        LikesCount = t.RateList.Count(r => r.Rating > 0),
+                        DislikesCount = t.RateList.Count(r => r.Rating < 0),
+                        GivenRating = userId == null ? null
+                            : t.RateList.FirstOrDefault(r => r.UserId == Guid.Parse(userId))?.Rating
                     })
                     .ToList()
             };

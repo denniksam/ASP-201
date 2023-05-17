@@ -35,9 +35,15 @@ namespace ASP_201.Data
 
 
             modelBuilder.Entity<Entity.Theme>()
-                .HasOne(s => s.Author) 
+                .HasOne(t => t.Author) 
                 .WithMany()
                 .HasForeignKey(s => s.AuthorId);
+
+            modelBuilder.Entity<Entity.Theme>()
+                .HasMany(t => t.RateList)
+                .WithOne()
+                .HasForeignKey(r => r.ItemId);
+
 
             modelBuilder.Entity<Entity.Post>()
                 .HasOne(p => p.Author)
